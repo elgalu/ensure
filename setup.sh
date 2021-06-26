@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 #
-# Script to idempotently validate that Python, PyEnv, Poetry, PyInvoke, venv,
-# Git, Docker, ssh-client, etc are installed on Linux and OSX
+# elgalu/ensure setup/bootstrap script
+#   Script to idempotently validate that Python, PyEnv, Poetry, PyInvoke, venv,
+#   Git, Docker, ssh-client, etc are installed on Linux and OSX
+#
+# Can be run with: `curl -sL git.io/elgalu | bash`
 #
 # This script is idempotent, it will not re-install things but only make sure nothing is missing.
 # If you want to force this script to install most things again run `rm -rf ~/.pyenv .venv/`
@@ -61,7 +64,7 @@ function util.die() {
     util.log.error "$1"
     # if $2 is defined AND NOT EMPTY, use $2; otherwise, set the exit code to: 150
     errnum=${2-150}
-    exit ${errnum}
+    exit "${errnum}"
 }
 
 #----------------------------#
@@ -102,6 +105,18 @@ function ensure_git() {
 
 ensure_git
 
+#----------------------#
+#--- Git Submodules ---#
+#----------------------#
+## Ensure git client is installed.
+function ensure_git_submodules() {
+    if [ -f ".gitmodules" ]; then
+        git submodule update --init
+    fi
+}
+
+ensure_git_submodules
+
 #--------------#
 #--- Docker ---#
 #--------------#
@@ -137,6 +152,20 @@ function ensure_ssh_client() {
 }
 
 ensure_ssh_client
+
+#-------------------------------------#
+#--- Ensure we have grep, awk, etc ---#
+#-------------------------------------#
+function ensure_system_helpers() {
+    if ! command grep --version 1>/dev/null; then
+        util.die "it seems grep is not installed, please install it."
+    fi
+    if ! command awk --version 1>/dev/null; then
+        util.die "it seems awk is not installed, please install it."
+    fi
+}
+
+ensure_system_helpers
 
 #-----------------------------#
 #--- Ensure Python version ---#
@@ -174,7 +203,7 @@ function pyenv_ensure_required_python_version() {
     if [ ! -f ".python-version" ]; then
         util.die "Please create a file named .python-version before proceeding."
     fi
-    local _required_python_version=$(cat .python-version)
+    _required_python_version=$(cat .python-version)
     if ! pyenv install "${_required_python_version}" --skip-existing; then
         util.die "Failed to pyenv_ensure_required_python_version"
     fi
@@ -204,9 +233,10 @@ function ensure_python_version() {
     fi
 }
 
-# Just in case, deactivate any active environments, could be more than 1
-deactivate 1>/dev/null 2>&1 || true
-deactivate 1>/dev/null 2>&1 || true
+# Just in case, deactivate any active environments
+deactivate nondestructive 1>/dev/null 2>&1 || true
+deactivate nondestructive 1>/dev/null 2>&1 || true
+deactivate nondestructive 1>/dev/null 2>&1 || true
 
 if ! ensure_python_version; then
     util.die "Failed to ensure_python_version"
@@ -270,4 +300,8 @@ ensure_poetry
 
 ensure_pyinvoke
 
-util.log.info "SUCCESS! Now activate your environment with: source .venv/bin/activate"
+util.log.info ""
+util.log.info "#----------------------------------------------#"
+util.log.info "# SUCCESS! Now activate your environment with: #"
+util.log.info "#     source .venv/bin/activate                #"
+util.log.info "#----------------------------------------------#"
