@@ -149,6 +149,9 @@ function ensure_ssh_client() {
     if ! command which ssh-copy-id 1>/dev/null; then
         util.die "it seems ssh-copy-id is not installed, please install a tool like openssh-client."
     fi
+    if ! command which sftp 1>/dev/null; then
+        util.die "it seems sftp is not installed."
+    fi
 }
 
 ensure_ssh_client
@@ -191,7 +194,7 @@ function validate_pyenv() {
             "${PYENV_ROOT}/bin/pyenv" virtualenv-init || true
         } >&2
 
-        if eval "$(${PYENV_ROOT}/bin/pyenv init -)"; then
+        if eval "$("${PYENV_ROOT}"/bin/pyenv init -)"; then
             util.log.info "PyEnv initialized"
         else
             util.die "PyEnv failed to initialize with init -"
@@ -294,6 +297,7 @@ function ensure_pyinvoke() {
 
 ensure_venv
 
+# shellcheck disable=SC1091
 source .venv/bin/activate || util.die "Failed to activate the virtual environment"
 
 ensure_poetry
