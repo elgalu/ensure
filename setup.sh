@@ -285,6 +285,26 @@ function ensure_poetry() {
 
 ensure_poetry
 
+#-------------------------#
+#--- Ensure GitHub/Hub ---#
+#-------------------------#
+## https://github.com/cli/cli/blob/trunk/docs/install_linux.md#debian-ubuntu-linux-apt
+function ensure_github_cli_releases() {
+    if ! command -v gh --version 1>/dev/null; then
+        util.log.error "Please install GitHub/CLI/CLI (official), see"
+        util.log.error "https://github.com/cli/cli/blob/trunk/docs/install_linux.md#debian-ubuntu-linux-apt"
+        util.log.error "or simply: brew install gh"
+        exit 40
+    fi
+    # if ! command -v hub --version 1>/dev/null; then
+    #     util.log.error "Please install GitHub/Hub releases management CLI, see"
+    #     util.log.error "https://github.com/github/hub#installation"
+    #     exit 30
+    # fi
+}
+
+ensure_github_cli_releases
+
 #-----------------------#
 #--- Ensure PyInvoke ---#
 #-----------------------#
