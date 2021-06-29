@@ -260,6 +260,13 @@ function ensure_venv() {
     fi
 }
 
+ensure_venv
+
+source ".venv/bin/activate" || util.die "Failed to activate the virtual environment"
+
+#---------------------#
+#--- Ensure Poetry ---#
+#---------------------#
 ## https://github.com/python-poetry/poetry
 function ensure_poetry() {
     # Do not install poetry within your virtual environment
@@ -276,8 +283,13 @@ function ensure_poetry() {
     fi
 }
 
+ensure_poetry
+
+#-----------------------#
+#--- Ensure PyInvoke ---#
+#-----------------------#
 ## https://github.com/pyinvoke/invoke
-function ensure_pyinvoke() {
+function ensure_pyinvoke_if_needed() {
     if [ -f "tasks.py" ] || [ -f "invoke.yaml" ]; then
         # let's make sure `poetry run` and `invoke` work
         if ! poetry run invoke setup; then
@@ -295,15 +307,37 @@ function ensure_pyinvoke() {
     fi
 }
 
-ensure_venv
+ensure_pyinvoke_if_needed
 
-# shellcheck disable=SC1091
-source .venv/bin/activate || util.die "Failed to activate the virtual environment"
+#-----------------------------------#
+#--- Ensure Ansible Dependencies ---#
+#-----------------------------------#
+## Ensure Ansible Galaxy roles (dependencies) are downloaded and up to date.
+# Ansible Galaxy is the way to share Ansible PlayBooks with the open source community.
+function ensure_ansible_if_needed() {
+    if [ -f "ansible.cfg" ]; then
+        if command -v ansible-galaxy --version 1>/dev/null; then
+            util.die "ansible.cfg file found in this project but ansible-galaxy is not installed."
+        fi
+        if [ -f "*/requirements.yml" ]; then
+            util.log.info "Ensure Ansible Galaxy roles (dependencies) are downloaded and up to date..."
+            # `ansible-galaxy`: command to manage Ansible roles in shared repositories,
+            # the default of which is Ansible Galaxy https://galaxy.ansible.com
+            ansible-galaxy collection install --force -r roles/requirements.yml >/dev/null
+            ansible-galaxy role install --force -r roles/requirements.yml >/dev/null
+            ansible-galaxy collection install --force -i -r config/requirements.yml >/dev/null
+            ansible-galaxy role install --force -i -r config/requirements.yml >/dev/null
+        fi
+    else
+        util.log.info "This project doesn't seem to be using Ansible."
+    fi
+}
 
-ensure_poetry
+ensure_ansible_if_needed
 
-ensure_pyinvoke
-
+#------------#
+#--- DONE ---#
+#------------#
 util.log.info ""
 util.log.info "#----------------------------------------------#"
 util.log.info "# SUCCESS! Now activate your environment with: #"
