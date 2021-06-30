@@ -360,10 +360,11 @@ ensure_ansible_if_needed
 #--------------------------------#
 ## https://github.com/hadolint/hadolint
 function ensure_hadolint_if_needed() {
-    if test -n "$(find . -maxdepth 3 -name 'Dockerfile' -print -quit)"; then
+    if test -n "$(find . -maxdepth 3 -name 'Dockerfile*' -print -quit)"; then
         if command -v hadolint --version 1>/dev/null; then
             util.log.error "Dockerfile(s) found on this project but hadolint is not installed."
             util.log.error "https://github.com/hadolint/hadolint#install"
+            exit 40
         fi
     else
         util.log.info "This project doesn't seem to be using Dockerfile(s)."
@@ -371,6 +372,23 @@ function ensure_hadolint_if_needed() {
 }
 
 ensure_hadolint_if_needed
+
+#----------------------------------------#
+#--- Ensure Vagrant for local testing ---#
+#----------------------------------------#
+function ensure_vagrant_if_needed() {
+    if test -n "$(find . -maxdepth 3 -name 'Vagrantfile*' -print -quit)"; then
+        if ! command which vagrant 1>/dev/null; then
+            util.log.error "Vagrantfile(s) found on this project but vagrant is not installed."
+            util.log.error "https://www.vagrantup.com/docs/installation"
+            exit 50
+        fi
+    else
+        util.log.info "This project doesn't seem to be using Vagrantfile(s)."
+    fi
+}
+
+ensure_vagrant_if_needed
 
 #------------#
 #--- DONE ---#
