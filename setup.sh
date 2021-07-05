@@ -347,6 +347,8 @@ function ensure_ansible_if_needed() {
             ansible-galaxy role install --force -r roles/requirements.yml >/dev/null
             ansible-galaxy collection install --force -i -r config/requirements.yml >/dev/null
             ansible-galaxy role install --force -i -r config/requirements.yml >/dev/null
+        else
+            util.log.info "No */requirements.yml found to ansible-galaxy install."
         fi
     else
         util.log.info "This project doesn't seem to be using Ansible."
