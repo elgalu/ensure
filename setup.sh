@@ -341,13 +341,13 @@ function ensure_ansible_if_needed() {
         fi
         # `ansible-galaxy`: command to manage Ansible roles in shared repositories,
         # the default of which is Ansible Galaxy https://galaxy.ansible.com
-        if [ -f "config/requirements.yml" ]; then
-            util.log.info "Ensure Ansible Galaxy config (dependencies) are downloaded and up to date..."
-            ansible-galaxy -vvv collection install --force -i -r config/requirements.yml
-            ansible-galaxy -vvv role install --force -i -r config/requirements.yml
-        else
-            util.log.info "No config/requirements.yml found to ansible-galaxy install."
-        fi
+        # if [ -f "config/requirements.yml" ]; then
+        #     util.log.info "Ensure Ansible Galaxy config (dependencies) are downloaded and up to date..."
+        #     ansible-galaxy -vvv collection install --force -i -r config/requirements.yml
+        #     ansible-galaxy -vvv role install --force -i -r config/requirements.yml
+        # else
+        #     util.log.info "No config/requirements.yml found to ansible-galaxy install."
+        # fi
         if [ -f "roles/requirements.yml" ]; then
             util.log.info "Ensure Ansible Galaxy roles (dependencies) are downloaded and up to date..."
             ansible-galaxy -vvv collection install --force -r roles/requirements.yml
