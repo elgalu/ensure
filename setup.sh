@@ -305,30 +305,6 @@ function ensure_github_cli_releases() {
 
 ensure_github_cli_releases
 
-#-----------------------#
-#--- Ensure PyInvoke ---#
-#-----------------------#
-## https://github.com/pyinvoke/invoke
-function ensure_pyinvoke_if_needed() {
-    if [ -f "tasks.py" ] || [ -f "invoke.yaml" ]; then
-        # let's make sure `poetry run` and `invoke` work
-        if ! poetry run invoke setup; then
-            util.die "Failed to poetry run invoke setup"
-        fi
-        # let's make sure we don't need `poetry run` since the .venv is activated anyways
-        if ! invoke tests; then
-            util.die "Failed to run tests"
-        fi
-        if ! invoke hooks; then
-            util.die "Failed to run hooks"
-        fi
-    else
-        util.log.info "This project doesn't seem to be using pyinvoke."
-    fi
-}
-
-ensure_pyinvoke_if_needed
-
 #-----------------------------------#
 #--- Ensure Ansible Dependencies ---#
 #-----------------------------------#
@@ -361,6 +337,49 @@ function ensure_ansible_if_needed() {
 }
 
 ensure_ansible_if_needed
+
+#-----------------------#
+#--- Ensure PyInvoke ---#
+#-----------------------#
+## https://github.com/pyinvoke/invoke
+function ensure_pyinvoke_if_needed() {
+    if [ -f "tasks.py" ] || [ -f "invoke.yaml" ]; then
+        # let's make sure `poetry run` and `invoke` work
+        if ! poetry run invoke setup; then
+            util.die "Failed to poetry run invoke setup"
+        fi
+        # let's make sure we don't need `poetry run` since the .venv is activated anyways
+        if ! invoke tests; then
+            util.die "Failed to run tests"
+        fi
+        if ! invoke hooks; then
+            util.die "Failed to run hooks"
+        fi
+    else
+        util.log.info "This project doesn't seem to be using pyinvoke."
+    fi
+}
+
+ensure_pyinvoke_if_needed
+
+#--------------------------------#
+#--- Ensure Bash/Shell linter ---#
+#--------------------------------#
+## https://github.com/koalaman/shellcheck
+function ensure_shellcheck_needed() {
+    if test -n "$(find . -maxdepth 3 -name '*.sh' -print -quit)"; then
+        if ! command -v shellcheck --version 1>/dev/null; then
+            util.log.error "Shell/Bash found on this project but shellcheck is not installed."
+            util.log.error "https://github.com/koalaman/shellcheck"
+            util.log.error "snap install --channel=edge shellcheck"
+            exit 35
+        fi
+    else
+        util.log.info "This project doesn't seem to be using Bash/Shell files."
+    fi
+}
+
+ensure_shellcheck_needed
 
 #--------------------------------#
 #--- Ensure Dockerfile linter ---#
