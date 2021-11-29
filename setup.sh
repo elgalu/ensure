@@ -309,7 +309,7 @@ ensure_github_cli_releases
 #--- Ensure Bash/Shell linter ---#
 #--------------------------------#
 ## https://github.com/koalaman/shellcheck
-function ensure_shellcheck_needed() {
+function ensure_shellcheck_if_needed() {
     if test -n "$(find . -maxdepth 3 -name '*.sh' -print -quit)"; then
         if ! command -v shellcheck --version 1>/dev/null; then
             util.log.error "Shell/Bash found on this project but shellcheck is not installed."
@@ -325,25 +325,22 @@ function ensure_shellcheck_needed() {
     fi
 }
 
-ensure_shellcheck_needed
+ensure_shellcheck_if_needed
 
 #--------------------------------#
 #--- Ensure Dockerfile linter ---#
 #--------------------------------#
 ## https://github.com/hadolint/hadolint
 function ensure_hadolint_if_needed() {
-    if [ -z "${CDP_BUILD_VERSION}" ]; then
-        if test -n "$(find . -maxdepth 3 -name 'Dockerfile*' -print -quit)"; then
-            if ! command -v hadolint --version 1>/dev/null; then
-                util.log.error "Dockerfile(s) found on this project but hadolint is not installed."
-                util.log.error "https://github.com/hadolint/hadolint#install"
-                exit 40
-            fi
-        else
-            util.log.info "This project doesn't seem to be using Dockerfile(s)."
+    if test -n "$(find . -maxdepth 3 -name 'Dockerfile*' -print -quit)"; then
+        if ! command -v hadolint --version 1>/dev/null; then
+            util.log.error "Dockerfile(s) found on this project but hadolint is not installed."
+            util.log.error "MacOS: brew install hadolint"
+            util.log.error "https://github.com/hadolint/hadolint#install"
+            exit 40
         fi
     else
-        util.log.info "TODO: hadolint (Dockerfile linter) needs to be pre-installed in the overlay."
+        util.log.info "This project doesn't seem to be using Dockerfile(s)."
     fi
 }
 
@@ -354,49 +351,44 @@ ensure_hadolint_if_needed
 #--------------------------------#
 ## https://github.com/stackrox/kube-linter
 function ensure_kube_linter_if_needed() {
-    if [ -z "${CDP_BUILD_VERSION}" ]; then
-        # If there are yaml files containing both `apiVersion:` and `kind:` then is very likely this project contains K8s manifests
-        if test -n "$(find . -name '*.yaml' -type f -exec grep -qlm1 'apiVersion:' {} \; -exec grep -lm1 -H 'kind:' {} \; -a -quit)"; then
-            if ! command -v kube-linter version 1>/dev/null; then
-                util.log.error "Kubernetes manifest(s) found on this project but kube-linter is not installed."
-                util.log.error "MacOS: brew install kube-linter"
-                util.log.error "Linux: GO111MODULE=on go install golang.stackrox.io/kube-linter/cmd/kube-linter@latest"
-                util.log.error "https://github.com/stackrox/kube-linter#installing-kubelinter"
-                exit 42
-            fi
-            # KubeAudit doesn't lint, focuses more on security of running clusters
-            # if ! command -v kubeaudit version 1>/dev/null; then
-            #     util.log.error "Kubernetes manifest(s) found on this project but kubeaudit is not installed."
-            #     util.log.error "MacOS: brew install kubeaudit"
-            #     util.log.error "Linux: https://github.com/Shopify/kubeaudit/releases"
-            #     exit 44
-            # fi
-            #
-            # KubeScore doesn't work with CDP templating system, yields errors like `Invalid value: "{{{APPLICATION_ID}}}"`
-            # if ! command -v kube-score version 1>/dev/null; then
-            #     util.log.error "Kubernetes manifest(s) found on this project but kube-score is not installed."
-            #     util.log.error "MacOS: brew install kube-score"
-            #     util.log.error "Linux: https://github.com/zegl/kube-score/releases"
-            #     exit 44
-            # fi
-            #
-            # Polaris doesn't work with CDP templating system and fails without outputting offending lines
-            # if ! command -v polaris version 1>/dev/null; then
-            #     util.log.error "Kubernetes manifest(s) found on this project but polaris is not installed."
-            #     util.log.error "MacOS: brew tap FairwindsOps/tap && brew install FairwindsOps/tap/polaris"
-            #     util.log.error "Linux: https://github.com/fairwindsops/polaris/releases"
-            #     exit 44
-            # fi
-        else
-            util.log.info "This project doesn't seem to be using Kubernetes manifests."
+    # If there are yaml files containing both `apiVersion:` and `kind:` then is very likely this project contains K8s manifests
+    if test -n "$(find . -name '*.yaml' -type f -exec grep -qlm1 'apiVersion:' {} \; -exec grep -lm1 -H 'kind:' {} \; -a -quit)"; then
+        if ! command -v kube-linter version 1>/dev/null; then
+            util.log.error "Kubernetes manifest(s) found on this project but kube-linter is not installed."
+            util.log.error "MacOS: brew install kube-linter"
+            util.log.error "Linux: GO111MODULE=on go install golang.stackrox.io/kube-linter/cmd/kube-linter@latest"
+            util.log.error "https://github.com/stackrox/kube-linter#installing-kubelinter"
+            exit 42
         fi
+        # KubeAudit doesn't lint, focuses more on security of running clusters
+        # if ! command -v kubeaudit version 1>/dev/null; then
+        #     util.log.error "Kubernetes manifest(s) found on this project but kubeaudit is not installed."
+        #     util.log.error "MacOS: brew install kubeaudit"
+        #     util.log.error "Linux: https://github.com/Shopify/kubeaudit/releases"
+        #     exit 44
+        # fi
+        #
+        # KubeScore doesn't work with CDP templating system, yields errors like `Invalid value: "{{{APPLICATION_ID}}}"`
+        # if ! command -v kube-score version 1>/dev/null; then
+        #     util.log.error "Kubernetes manifest(s) found on this project but kube-score is not installed."
+        #     util.log.error "MacOS: brew install kube-score"
+        #     util.log.error "Linux: https://github.com/zegl/kube-score/releases"
+        #     exit 44
+        # fi
+        #
+        # Polaris doesn't work with CDP templating system and fails without outputting offending lines
+        # if ! command -v polaris version 1>/dev/null; then
+        #     util.log.error "Kubernetes manifest(s) found on this project but polaris is not installed."
+        #     util.log.error "MacOS: brew tap FairwindsOps/tap && brew install FairwindsOps/tap/polaris"
+        #     util.log.error "Linux: https://github.com/fairwindsops/polaris/releases"
+        #     exit 44
+        # fi
     else
-        util.log.info "TODO: kube-linter (Dockerfile linter) needs to be pre-installed in the overlay."
+        util.log.info "This project doesn't seem to be using Kubernetes manifests."
     fi
 }
 
 ensure_kube_linter_if_needed
-
 
 #-----------------------------------#
 #--- Ensure Ansible Dependencies ---#
