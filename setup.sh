@@ -305,6 +305,99 @@ function ensure_github_cli_releases() {
 
 ensure_github_cli_releases
 
+#--------------------------------#
+#--- Ensure Bash/Shell linter ---#
+#--------------------------------#
+## https://github.com/koalaman/shellcheck
+function ensure_shellcheck_needed() {
+    if test -n "$(find . -maxdepth 3 -name '*.sh' -print -quit)"; then
+        if ! command -v shellcheck --version 1>/dev/null; then
+            util.log.error "Shell/Bash found on this project but shellcheck is not installed."
+            util.log.error "https://github.com/koalaman/shellcheck"
+            util.log.error "MacOS: brew install shellcheck"
+            util.log.error "Linux: snap install --channel=edge shellcheck"
+            util.log.error "Linux: sudo apt install shellcheck"
+            util.log.error "AnyOS: pip install shellcheck-py"
+            exit 35
+        fi
+    else
+        util.log.info "This project doesn't seem to be using Bash/Shell files."
+    fi
+}
+
+ensure_shellcheck_needed
+
+#--------------------------------#
+#--- Ensure Dockerfile linter ---#
+#--------------------------------#
+## https://github.com/hadolint/hadolint
+function ensure_hadolint_if_needed() {
+    if [ -z "${CDP_BUILD_VERSION}" ]; then
+        if test -n "$(find . -maxdepth 3 -name 'Dockerfile*' -print -quit)"; then
+            if ! command -v hadolint --version 1>/dev/null; then
+                util.log.error "Dockerfile(s) found on this project but hadolint is not installed."
+                util.log.error "https://github.com/hadolint/hadolint#install"
+                exit 40
+            fi
+        else
+            util.log.info "This project doesn't seem to be using Dockerfile(s)."
+        fi
+    else
+        util.log.info "TODO: hadolint (Dockerfile linter) needs to be pre-installed in the overlay."
+    fi
+}
+
+ensure_hadolint_if_needed
+
+#--------------------------------#
+#--- Ensure Kubernetes linter ---#
+#--------------------------------#
+## https://github.com/stackrox/kube-linter
+function ensure_kube_linter_if_needed() {
+    if [ -z "${CDP_BUILD_VERSION}" ]; then
+        # If there are yaml files containing both `apiVersion:` and `kind:` then is very likely this project contains K8s manifests
+        if test -n "$(find . -name '*.yaml' -type f -exec grep -qlm1 'apiVersion:' {} \; -exec grep -lm1 -H 'kind:' {} \; -a -quit)"; then
+            if ! command -v kube-linter version 1>/dev/null; then
+                util.log.error "Kubernetes manifest(s) found on this project but kube-linter is not installed."
+                util.log.error "MacOS: brew install kube-linter"
+                util.log.error "Linux: GO111MODULE=on go install golang.stackrox.io/kube-linter/cmd/kube-linter@latest"
+                util.log.error "https://github.com/stackrox/kube-linter#installing-kubelinter"
+                exit 42
+            fi
+            # KubeAudit doesn't lint, focuses more on security of running clusters
+            # if ! command -v kubeaudit version 1>/dev/null; then
+            #     util.log.error "Kubernetes manifest(s) found on this project but kubeaudit is not installed."
+            #     util.log.error "MacOS: brew install kubeaudit"
+            #     util.log.error "Linux: https://github.com/Shopify/kubeaudit/releases"
+            #     exit 44
+            # fi
+            #
+            # KubeScore doesn't work with CDP templating system, yields errors like `Invalid value: "{{{APPLICATION_ID}}}"`
+            # if ! command -v kube-score version 1>/dev/null; then
+            #     util.log.error "Kubernetes manifest(s) found on this project but kube-score is not installed."
+            #     util.log.error "MacOS: brew install kube-score"
+            #     util.log.error "Linux: https://github.com/zegl/kube-score/releases"
+            #     exit 44
+            # fi
+            #
+            # Polaris doesn't work with CDP templating system and fails without outputting offending lines
+            # if ! command -v polaris version 1>/dev/null; then
+            #     util.log.error "Kubernetes manifest(s) found on this project but polaris is not installed."
+            #     util.log.error "MacOS: brew tap FairwindsOps/tap && brew install FairwindsOps/tap/polaris"
+            #     util.log.error "Linux: https://github.com/fairwindsops/polaris/releases"
+            #     exit 44
+            # fi
+        else
+            util.log.info "This project doesn't seem to be using Kubernetes manifests."
+        fi
+    else
+        util.log.info "TODO: kube-linter (Dockerfile linter) needs to be pre-installed in the overlay."
+    fi
+}
+
+ensure_kube_linter_if_needed
+
+
 #-----------------------------------#
 #--- Ensure Ansible Dependencies ---#
 #-----------------------------------#
@@ -338,9 +431,26 @@ function ensure_ansible_if_needed() {
 
 ensure_ansible_if_needed
 
-#-----------------------#
-#--- Ensure PyInvoke ---#
-#-----------------------#
+#----------------------------------------#
+#--- Ensure Vagrant for local testing ---#
+#----------------------------------------#
+function ensure_vagrant_if_needed() {
+    if test -n "$(find . -maxdepth 3 -name 'Vagrantfile*' -print -quit)"; then
+        if ! command which vagrant 1>/dev/null; then
+            util.log.error "Vagrantfile(s) found on this project but vagrant is not installed."
+            util.log.error "https://www.vagrantup.com/docs/installation"
+            exit 50
+        fi
+    else
+        util.log.info "This project doesn't seem to be using Vagrantfile(s)."
+    fi
+}
+
+ensure_vagrant_if_needed
+
+#----------------------------------------#
+#--- Ensure PyInvoke and invoke tests ---#
+#----------------------------------------#
 ## https://github.com/pyinvoke/invoke
 function ensure_pyinvoke_if_needed() {
     if [ -f "tasks.py" ] || [ -f "invoke.yaml" ]; then
@@ -361,60 +471,6 @@ function ensure_pyinvoke_if_needed() {
 }
 
 ensure_pyinvoke_if_needed
-
-#--------------------------------#
-#--- Ensure Bash/Shell linter ---#
-#--------------------------------#
-## https://github.com/koalaman/shellcheck
-function ensure_shellcheck_needed() {
-    if test -n "$(find . -maxdepth 3 -name '*.sh' -print -quit)"; then
-        if ! command -v shellcheck --version 1>/dev/null; then
-            util.log.error "Shell/Bash found on this project but shellcheck is not installed."
-            util.log.error "https://github.com/koalaman/shellcheck"
-            util.log.error "snap install --channel=edge shellcheck"
-            exit 35
-        fi
-    else
-        util.log.info "This project doesn't seem to be using Bash/Shell files."
-    fi
-}
-
-ensure_shellcheck_needed
-
-#--------------------------------#
-#--- Ensure Dockerfile linter ---#
-#--------------------------------#
-## https://github.com/hadolint/hadolint
-function ensure_hadolint_if_needed() {
-    if test -n "$(find . -maxdepth 3 -name 'Dockerfile*' -print -quit)"; then
-        if command -v hadolint --version 1>/dev/null; then
-            util.log.error "Dockerfile(s) found on this project but hadolint is not installed."
-            util.log.error "https://github.com/hadolint/hadolint#install"
-            exit 40
-        fi
-    else
-        util.log.info "This project doesn't seem to be using Dockerfile(s)."
-    fi
-}
-
-ensure_hadolint_if_needed
-
-#----------------------------------------#
-#--- Ensure Vagrant for local testing ---#
-#----------------------------------------#
-function ensure_vagrant_if_needed() {
-    if test -n "$(find . -maxdepth 3 -name 'Vagrantfile*' -print -quit)"; then
-        if ! command which vagrant 1>/dev/null; then
-            util.log.error "Vagrantfile(s) found on this project but vagrant is not installed."
-            util.log.error "https://www.vagrantup.com/docs/installation"
-            exit 50
-        fi
-    else
-        util.log.info "This project doesn't seem to be using Vagrantfile(s)."
-    fi
-}
-
-ensure_vagrant_if_needed
 
 #------------#
 #--- DONE ---#
