@@ -33,30 +33,27 @@ set -o pipefail
 [ -z "$PYENV_ROOT" ] && export PYENV_ROOT="${HOME}/.pyenv"
 GITHUB="https://github.com"
 
-# set -u: treat unset variables as an error and exit immediately
-set -u
-
 #------------------------#
 #--- Helper Functions ---#
 #------------------------#
 ## Output to standard error
 function util.log.error() {
-    printf "ERROR $(${_date} "+%H:%M:%S:%N") %s\n" "$*" >&2;
+    printf "ERROR $(${_date} "+%H:%M:%S:%N") %s\n" "$*" >&2
 }
 
 ## Output a warning to standard output
 function util.log.warn() {
-    printf "WARN $(${_date} "+%H:%M:%S:%N") %s\n" "$*" >&2;
+    printf "WARN $(${_date} "+%H:%M:%S:%N") %s\n" "$*" >&2
 }
 
 ## Output an info standard output
 function util.log.info() {
-    printf "INFO $(${_date} "+%H:%M:%S:%N") %s\n" "$*" >&1;
+    printf "INFO $(${_date} "+%H:%M:%S:%N") %s\n" "$*" >&1
 }
 
 ## Output a new line break to stdout
 function util.log.newline() {
-    printf "\n" >&1;
+    printf "\n" >&1
 }
 
 ## Print an error and exit, failing
@@ -175,12 +172,12 @@ ensure_system_helpers
 #-----------------------------#
 ## Installs PyEnv in current user's home, rootless.
 function install_pyenv() {
-    checkout "${GITHUB}/pyenv/pyenv.git"            "${PYENV_ROOT}"
-    checkout "${GITHUB}/pyenv/pyenv-doctor.git"     "${PYENV_ROOT}/plugins/pyenv-doctor"
-    checkout "${GITHUB}/pyenv/pyenv-installer.git"  "${PYENV_ROOT}/plugins/pyenv-installer"
-    checkout "${GITHUB}/pyenv/pyenv-update.git"     "${PYENV_ROOT}/plugins/pyenv-update"
+    checkout "${GITHUB}/pyenv/pyenv.git" "${PYENV_ROOT}"
+    checkout "${GITHUB}/pyenv/pyenv-doctor.git" "${PYENV_ROOT}/plugins/pyenv-doctor"
+    checkout "${GITHUB}/pyenv/pyenv-installer.git" "${PYENV_ROOT}/plugins/pyenv-installer"
+    checkout "${GITHUB}/pyenv/pyenv-update.git" "${PYENV_ROOT}/plugins/pyenv-update"
     checkout "${GITHUB}/pyenv/pyenv-virtualenv.git" "${PYENV_ROOT}/plugins/pyenv-virtualenv"
-    checkout "${GITHUB}/pyenv/pyenv-which-ext.git"  "${PYENV_ROOT}/plugins/pyenv-which-ext"
+    checkout "${GITHUB}/pyenv/pyenv-which-ext.git" "${PYENV_ROOT}/plugins/pyenv-which-ext"
 }
 
 ## Validates PyEnv is working
@@ -224,8 +221,10 @@ function ensure_python_version() {
         if python --version | grep "$(cat .python-version)"; then
             util.log.info "We're already running the required version of Python."
         else
-            util.log.error "We'll not install PyEnv while running as root, please ensure you have a matching Python version according to .python-version file."
+            util.log.error "We'll not install PyEnv while running as root."
+            util.log.error "Please ensure you have a matching Python version according to .python-version file."
             cat .python-version
+            util.log.error "Current Python version:"
             python --version
             exit 10
         fi
@@ -271,7 +270,11 @@ source ".venv/bin/activate" || util.die "Failed to activate the virtual environm
 function ensure_poetry() {
     # Do not install poetry within your virtual environment
     if command -v poetry --version 1>/dev/null; then
-        poetry self update || util.die "Failed to self update poetry."
+        if [ -z "${CDP_BUILD_VERSION}" ]; then
+            poetry self update || util.die "Failed to self update poetry. Quitting..."
+        else
+            util.log.info "Running in CDP, will not upgrade poetry."
+        fi
     else
         util.log.error "Please install poetry yourself, outside this project's environment, e.g."
         util.log.error "curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | python -"
